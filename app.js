@@ -16003,6 +16003,17 @@ async function saveLaporanOnline(blanko, payload, options = {}) {
     }
   }));
 
+  const { data: rpcData, error: rpcError } = await siopiDb.rpc('siopi_save_laporan', {
+    p_rows: rows
+  });
+
+  if (!rpcError) {
+    console.log("Berhasil simpan ke Supabase:", rpcData);
+    return Array.isArray(rpcData) ? !!rpcData[0]?.success : true;
+  }
+
+  console.warn("RPC siopi_save_laporan belum tersedia/gagal, mencoba akses tabel langsung:", rpcError);
+
   const { data, error } = await siopiDb
     .from("siopi_laporan")
     .upsert(rows, { onConflict: 'daerah_irigasi,kategori,blanko,key_laporan' })
@@ -16019,6 +16030,17 @@ async function saveLaporanOnline(blanko, payload, options = {}) {
 
 async function getLaporanOnline(blanko, options = {}) {
   if (!siopiDb) return [];
+
+  const { data: rpcData, error: rpcError } = await siopiDb.rpc('siopi_get_laporan', {
+    p_daerah_irigasi: currentDI,
+    p_blanko: blanko,
+    p_kategori: options.kategori || null,
+    p_key_laporan: options.key_laporan || null
+  });
+
+  if (!rpcError) return Array.isArray(rpcData) ? rpcData : [];
+
+  console.warn("RPC siopi_get_laporan belum tersedia/gagal, mencoba akses tabel langsung:", rpcError);
 
   let query = siopiDb
     .from('siopi_laporan')
