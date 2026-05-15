@@ -167,7 +167,8 @@ async function loginSiopiOnline(username, password) {
             if (selectEl) selectEl.value = currentDI;
 
             // Eksekusi Pemuatan Data D.I Baru
-            loadProfilDI();
+            await loadProfilDI();
+            await syncInitialOnlineDataForCurrentDI();
             
             // Reset seluruh tampilan kembali ke Dashboard agar fresh
             navigate('dashboard'); 
@@ -771,10 +772,12 @@ function showModernConfirm(title, message) {
                     
                     const overlay = document.getElementById('loginOverlay');
                     overlay.style.opacity = '0';
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         overlay.classList.add('hidden'); 
                         setupUIBasedOnRole(); 
-                        syncDaftarDIAwal().finally(() => loadProfilDI()); // Segera muat profil sesuai D.I
+                        await syncDaftarDIAwal();
+                        await loadProfilDI(); // Segera muat profil sesuai D.I
+                        await syncInitialOnlineDataForCurrentDI();
                         navigate('dashboard'); 
                         showToast(`Selamat datang, ${currentUser.nama}!${sumber === 'lokal' ? ' (login lokal)' : ''}`, sumber === 'lokal' ? 'info' : 'success');
                     }, 300);
@@ -2516,6 +2519,21 @@ async function syncAllOperasiFromSupabase() {
         syncOperasiGlobalFromSupabase('11O_GLOBAL', '11-O'),
         syncOperasiGlobalFromSupabase('12O_GLOBAL', '12-O')
     ]);
+}
+
+async function syncInitialOnlineDataForCurrentDI() {
+    if (!siopiDb) return;
+    try {
+        await Promise.all([
+            syncAllOperasiFromSupabase(),
+            typeof syncPemeliharaanAwalFromSupabase === 'function'
+                ? syncPemeliharaanAwalFromSupabase()
+                : Promise.resolve()
+        ]);
+        renderAllOperationSavedLists();
+    } catch (err) {
+        console.warn('Sinkronisasi awal Supabase belum berhasil:', err);
+    }
 }
 
 function resetFormInputs02O(keepDropdown = false) {
@@ -16040,6 +16058,8 @@ async function initApp() {
             currentDI = currentUser.diAkses;
         }
         await syncDaftarDIAwal();
+        await loadProfilDI();
+        await syncInitialOnlineDataForCurrentDI();
         const overlay = document.getElementById('loginOverlay');
         overlay.classList.add('hidden'); 
         overlay.style.opacity = '0';
