@@ -167,8 +167,7 @@ async function loginSiopiOnline(username, password) {
             if (selectEl) selectEl.value = currentDI;
 
             // Eksekusi Pemuatan Data D.I Baru
-            await loadProfilDI();
-            await syncInitialOnlineDataForCurrentDI();
+            loadProfilDI();
             
             // Reset seluruh tampilan kembali ke Dashboard agar fresh
             navigate('dashboard'); 
@@ -772,12 +771,10 @@ function showModernConfirm(title, message) {
                     
                     const overlay = document.getElementById('loginOverlay');
                     overlay.style.opacity = '0';
-                    setTimeout(async () => {
+                    setTimeout(() => {
                         overlay.classList.add('hidden'); 
                         setupUIBasedOnRole(); 
-                        await syncDaftarDIAwal();
-                        await loadProfilDI(); // Segera muat profil sesuai D.I
-                        await syncInitialOnlineDataForCurrentDI();
+                        syncDaftarDIAwal().finally(() => loadProfilDI()); // Segera muat profil sesuai D.I
                         navigate('dashboard'); 
                         showToast(`Selamat datang, ${currentUser.nama}!${sumber === 'lokal' ? ' (login lokal)' : ''}`, sumber === 'lokal' ? 'info' : 'success');
                     }, 300);
@@ -2519,21 +2516,6 @@ async function syncAllOperasiFromSupabase() {
         syncOperasiGlobalFromSupabase('11O_GLOBAL', '11-O'),
         syncOperasiGlobalFromSupabase('12O_GLOBAL', '12-O')
     ]);
-}
-
-async function syncInitialOnlineDataForCurrentDI() {
-    if (!siopiDb) return;
-    try {
-        await Promise.all([
-            syncAllOperasiFromSupabase(),
-            typeof syncPemeliharaanAwalFromSupabase === 'function'
-                ? syncPemeliharaanAwalFromSupabase()
-                : Promise.resolve()
-        ]);
-        renderAllOperationSavedLists();
-    } catch (err) {
-        console.warn('Sinkronisasi awal Supabase belum berhasil:', err);
-    }
 }
 
 function resetFormInputs02O(keepDropdown = false) {
@@ -16003,17 +15985,6 @@ async function saveLaporanOnline(blanko, payload, options = {}) {
     }
   }));
 
-  const { data: rpcData, error: rpcError } = await siopiDb.rpc('siopi_save_laporan', {
-    p_rows: rows
-  });
-
-  if (!rpcError) {
-    console.log("Berhasil simpan ke Supabase:", rpcData);
-    return Array.isArray(rpcData) ? !!rpcData[0]?.success : true;
-  }
-
-  console.warn("RPC siopi_save_laporan belum tersedia/gagal, mencoba akses tabel langsung:", rpcError);
-
   const { data, error } = await siopiDb
     .from("siopi_laporan")
     .upsert(rows, { onConflict: 'daerah_irigasi,kategori,blanko,key_laporan' })
@@ -16030,17 +16001,6 @@ async function saveLaporanOnline(blanko, payload, options = {}) {
 
 async function getLaporanOnline(blanko, options = {}) {
   if (!siopiDb) return [];
-
-  const { data: rpcData, error: rpcError } = await siopiDb.rpc('siopi_get_laporan', {
-    p_daerah_irigasi: currentDI,
-    p_blanko: blanko,
-    p_kategori: options.kategori || null,
-    p_key_laporan: options.key_laporan || null
-  });
-
-  if (!rpcError) return Array.isArray(rpcData) ? rpcData : [];
-
-  console.warn("RPC siopi_get_laporan belum tersedia/gagal, mencoba akses tabel langsung:", rpcError);
 
   let query = siopiDb
     .from('siopi_laporan')
@@ -16080,8 +16040,6 @@ async function initApp() {
             currentDI = currentUser.diAkses;
         }
         await syncDaftarDIAwal();
-        await loadProfilDI();
-        await syncInitialOnlineDataForCurrentDI();
         const overlay = document.getElementById('loginOverlay');
         overlay.classList.add('hidden'); 
         overlay.style.opacity = '0';
