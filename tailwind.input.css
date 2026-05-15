@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .view-section { animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .td-base { @apply p-1.5 border-r; }
+    .inp-tbl { @apply w-full min-w-[80px] border border-slate-200 rounded p-1.5 text-center text-sm outline-none focus:ring-1 focus:ring-blue-500; }
+    .inp-tbl-ro { @apply w-full min-w-[80px] border border-transparent bg-slate-100 rounded p-1.5 text-center text-sm font-medium text-slate-400 cursor-not-allowed outline-none; }
+    .inp-tbl-calc { @apply w-full min-w-[80px] border border-transparent rounded p-1.5 text-center text-sm font-semibold cursor-not-allowed outline-none; }
+}
